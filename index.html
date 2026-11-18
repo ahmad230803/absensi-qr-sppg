@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Absensi QR - SPPG Sungai Lintang</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 450px;
+      margin: 20px auto;
+      background: white;
+      padding: 22px;
+      border-radius: 18px;
+      box-shadow: 0 5px 20px #0001;
+    }
+    h2 {
+      text-align: center;
+      color: #166534;
+    }
+    .subjudul {
+      text-align: center;
+      color: #64748b;
+    }
+    video {
+      width: 100%;
+      border-radius: 12px;
+      margin-top: 20px;
+      background: #111;
+    }
+    #hasil {
+      margin-top: 18px;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      overflow-wrap: anywhere;
+      background: #e2e8f0;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 12px;
+      background: #166534;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>ABSENSI RELAWAN</h2>
+    <div class="subjudul">SPPG SUNGAI LINTANG</div>
+
+    <video id="video" autoplay playsinline></video>
+    <canvas id="canvas" hidden></canvas>
+
+    <div id="hasil">Menyiapkan kamera...</div>
+    <button onclick="mulaiKamera()">Buka Kamera</button>
+  </div>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const hasil = document.getElementById("hasil");
+
+let stream = null;
+let aktif = false;
+
+async function mulaiKamera() {
+  try {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    aktif = true;
+    hasil.innerText = "Kamera aktif. Arahkan ke QR Code.";
+    scan();
+
+  } catch (err) {
+    hasil.innerText = "Gagal membuka kamera: " + err.message;
+  }
+}
+
+function scan() {
+  if (!aktif) return;
+
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const gambar = ctx.getImageData(
+      0, 0, canvas.width, canvas.height
+    );
+
+    const qr = jsQR(gambar.data, gambar.width, gambar.height);
+
+    if (qr) {
+      aktif = false;
+      hasil.innerText = "QR TERDETEKSI: " + qr.data;
+      return;
+    }
+  }
+
+  requestAnimationFrame(scan);
+}
+
+mulaiKamera();
+</script>
+</body>
+</html>
